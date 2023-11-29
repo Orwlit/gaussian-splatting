@@ -29,6 +29,21 @@ except ImportError:
     TENSORBOARD_FOUND = False
 
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from):
+    """
+    @brief 主要的训练函数，控制整个模型的训练流程。
+    
+    @param dataset 数据集对象，包含训练所需的数据。
+    @param opt 优化参数，控制学习率、迭代次数等。
+    @param pipe 管道参数，用于处理数据和模型渲染。
+    @param testing_iterations 测试迭代的列表，指定在哪些迭代进行模型评估。
+    @param saving_iterations 保存迭代的列表，指定在哪些迭代保存模型。
+    @param checkpoint_iterations 检查点迭代的列表，指定在哪些迭代保存检查点。
+    @param checkpoint 检查点文件的路径，用于恢复训练。
+    @param debug_from 调试开始的迭代数。
+    
+    @return None
+    """
+    
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset.sh_degree)
@@ -132,6 +147,14 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
 
 def prepare_output_and_logger(args):    
+    """
+    @brief 设置输出目录并初始化TensorBoard日志记录器。
+    
+    @param args 包含输出和日志设置的配置参数。
+    
+    @return TensorBoard写入器对象。
+    """    
+
     if not args.model_path:
         if os.getenv('OAR_JOB_ID'):
             unique_str=os.getenv('OAR_JOB_ID')
@@ -154,6 +177,23 @@ def prepare_output_and_logger(args):
     return tb_writer
 
 def training_report(tb_writer, iteration, Ll1, loss, l1_loss, elapsed, testing_iterations, scene : Scene, renderFunc, renderArgs):
+    """
+    @brief 生成训练报告，记录关键训练指标。
+    
+    @param tb_writer TensorBoard写入器，用于记录训练数据。
+    @param iteration 当前迭代次数。
+    @param Ll1 计算得到的L1损失值。
+    @param loss 综合损失值。
+    @param l1_loss L1损失函数。
+    @param elapsed 当前迭代的耗时。
+    @param testing_iterations 测试迭代的列表。
+    @param scene 场景对象，包含模型和渲染设置。
+    @param renderFunc 渲染函数。
+    @param renderArgs 渲染函数的参数。
+    
+    @return None
+    """
+
     if tb_writer:
         tb_writer.add_scalar('train_loss_patches/l1_loss', Ll1.item(), iteration)
         tb_writer.add_scalar('train_loss_patches/total_loss', loss.item(), iteration)

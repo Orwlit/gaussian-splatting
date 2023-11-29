@@ -1,0 +1,4 @@
+// {
+//   "files.autoSave": "afterDelay",
+//   "files.autoSaveDelay": 1000  // 自动保存的延迟时间（毫秒）
+// }
