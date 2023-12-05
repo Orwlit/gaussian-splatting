@@ -28,20 +28,20 @@ try:
 except ImportError:
     TENSORBOARD_FOUND = False
 
+
+
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from):
-    """
-    @brief 主要的训练函数，控制整个模型的训练流程。
-    
-    @param dataset 数据集对象，包含训练所需的数据。
-    @param opt 优化参数，控制学习率、迭代次数等。
-    @param pipe 管道参数，用于处理数据和模型渲染。
-    @param testing_iterations 测试迭代的列表，指定在哪些迭代进行模型评估。
-    @param saving_iterations 保存迭代的列表，指定在哪些迭代保存模型。
-    @param checkpoint_iterations 检查点迭代的列表，指定在哪些迭代保存检查点。
-    @param checkpoint 检查点文件的路径，用于恢复训练。
-    @param debug_from 调试开始的迭代数。
-    
-    @return None
+    """主要的训练函数，控制整个模型的训练流程。
+
+    Args:
+        dataset (_type_): 数据集对象，包含训练所需的数据。
+        opt (_type_): 优化参数，控制学习率、迭代次数等。
+        pipe (_type_): 管道参数，用于处理数据和模型渲染。
+        testing_iterations (_type_): 测试迭代的列表，指定在哪些迭代进行模型评估。
+        saving_iterations (_type_): 保存迭代的列表，指定在哪些迭代保存模型。
+        checkpoint_iterations (_type_): 检查点迭代的列表，指定在哪些迭代保存检查点。
+        checkpoint (_type_): 检查点文件的路径，用于恢复训练。
+        debug_from (_type_): 调试开始的迭代数。
     """
     
     first_iter = 0
@@ -256,7 +256,17 @@ if __name__ == "__main__":
     # Start GUI server, configure and run training
     network_gui.init(args.ip, args.port)
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
-    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from)
+    
+    training(
+        dataset=lp.extract(args), 
+        opt=op.extract(args), 
+        pipe=pp.extract(args), 
+        testing_iterations=args.test_iterations, 
+        saving_iterations=args.save_iterations, 
+        checkpoint_iterations=args.checkpoint_iterations, 
+        checkpoint=args.start_checkpoint, 
+        debug_from=args.debug_from
+    )
 
     # All done
     print("\nTraining complete.")

@@ -2,7 +2,7 @@
 	path = submodules/simple-knn
 	url = https://gitlab.inria.fr/bkerbl/simple-knn.git
 [submodule "submodules/diff-gaussian-rasterization"]
-	path = submodules/diff-gaussian-rasterization
+	path = submodules/diff-gaussian-rasterization-comment
 	url = https://github.com/Orwlit/diff-gaussian-rasterization-comment.git
 [submodule "SIBR_viewers"]
 	path = SIBR_viewers

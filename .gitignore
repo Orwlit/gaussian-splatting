@@ -10,3 +10,4 @@ tensorboard_3d
 screenshots
 
 __pycache__/**
+*.uuid
