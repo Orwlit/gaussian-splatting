@@ -24,14 +24,14 @@ from utils.general_utils import strip_symmetric, build_scaling_rotation
 
 class GaussianModel:
     """_summary_
-    - 点里存储的优化变量：
+    点里存储的优化变量: 
         变量名          | 意义          | 维度
         _xyz               三维坐标                             [num_pointcloud, 3]
-        _features_dc       球谐系数: 0维的?                     [num_pointcloud, 1, 3]
-        _features_rest     球谐系数: 1到3维的全部15个?           [num_pointcloud, 15, 3]
+        _features_dc       球谐系数: 0维                     [num_pointcloud, 1, 3]
+        _features_rest     球谐系数: 剩下的所有系数, 默认1到3维的全部15个   [num_pointcloud, 15, 3]
         _opacity            不透明度                            [num_pointcloud, 1]
-        _scaling            xyz坐标的尺度?                      [num_pointcloud, 3]
-        _rotation           各向异性协方差：四元数表示的旋转矩阵    [num_pointcloud, 4]
+        _scaling            各向异性协方差: 尺度矩阵S, 见公式6 [num_pointcloud, 3]
+        _rotation           各向异性协方差: 旋转矩阵R, 四元数表示, 见公式6    [num_pointcloud, 4]
     """
 
 
@@ -215,9 +215,9 @@ class GaussianModel:
         l = [
             # 3D位置
             {'params': [self._xyz], 'lr': training_args.position_lr_init * self.spatial_lr_scale, "name": "xyz"},
-            # 颜色？？
+            # 球谐函数: 0阶
             {'params': [self._features_dc], 'lr': training_args.feature_lr, "name": "f_dc"},
-            # 球谐函数的颜色特征？学习率是_features_dc的1/20。
+            # 球谐函数: 高阶, 剩余所有阶, 默认是1-3阶, 可在 ModelParams.sh_degree 定义具体用多少阶的球谐函数。学习率是_features_dc的1/20。
             {'params': [self._features_rest], 'lr': training_args.feature_lr / 20.0, "name": "f_rest"},
             # 不透明度
             {'params': [self._opacity], 'lr': training_args.opacity_lr, "name": "opacity"},
@@ -373,7 +373,7 @@ class GaussianModel:
 
 
     def _prune_optimizer(self, mask):
-        """修剪（prune）优化器中的参数，即根据给定的掩码（mask）保留或删除参数的某些部分。
+        """修剪（prune）优化器中的参数, 即根据给定的掩码（mask）保留或删除参数的某些部分。
 
         Args:
             mask (_type_): _description_
@@ -391,21 +391,21 @@ class GaussianModel:
             stored_state = self.optimizer.state.get(group['params'][0], None)
 
             if stored_state is not None:
-                # 如果状态存在，根据掩码更新状态的动量项和平方梯度项
+                # 如果状态存在, 根据掩码更新状态的动量项和平方梯度项
                 stored_state["exp_avg"] = stored_state["exp_avg"][mask]
                 stored_state["exp_avg_sq"] = stored_state["exp_avg_sq"][mask]
 
                 # 删除原有参数的状态
                 del self.optimizer.state[group['params'][0]]
 
-                # 应用掩码，创建新的 nn.Parameter，并更新优化器状态
+                # 应用掩码, 创建新的 nn.Parameter, 并更新优化器状态
                 group["params"][0] = nn.Parameter((group["params"][0][mask].requires_grad_(True))) # 过滤某些不需要的参数
                 self.optimizer.state[group['params'][0]] = stored_state
 
                 # 将修剪后的参数加入返回字典
                 optimizable_tensors[group["name"]] = group["params"][0]
             else:
-                # 如果状态不存在，直接应用掩码创建新的 nn.Parameter
+                # 如果状态不存在, 直接应用掩码创建新的 nn.Parameter
                 group["params"][0] = nn.Parameter(group["params"][0][mask].requires_grad_(True))  # 过滤某些不需要的参数
                 optimizable_tensors[group["name"]] = group["params"][0]
 
@@ -451,7 +451,7 @@ class GaussianModel:
             # 获取当前参数的优化器状态（如果存在）
             stored_state = self.optimizer.state.get(group['params'][0], None)
             
-            # 如果状态存在，更新状态的动量项和平方梯度项
+            # 如果状态存在, 更新状态的动量项和平方梯度项
             if stored_state is not None:
             
                 # 将扩展张量的零初始化状态与原状态拼接
@@ -460,14 +460,14 @@ class GaussianModel:
 
                 # 删除原有参数的状态
                 del self.optimizer.state[group['params'][0]]
-                # 使用拼接后的新参数创建新的 nn.Parameter，并更新优化器状态
+                # 使用拼接后的新参数创建新的 nn.Parameter, 并更新优化器状态
                 group["params"][0] = nn.Parameter(torch.cat((group["params"][0], extension_tensor), dim=0).requires_grad_(True)) # 拼接新参数
                 self.optimizer.state[group['params'][0]] = stored_state
 
                 # 将更新后的参数加入返回字典
                 optimizable_tensors[group["name"]] = group["params"][0]
             else:
-                # 如果状态不存在，直接使用拼接后的新参数创建新的 nn.Parameter
+                # 如果状态不存在, 直接使用拼接后的新参数创建新的 nn.Parameter
                 group["params"][0] = nn.Parameter(torch.cat((group["params"][0], extension_tensor), dim=0).requires_grad_(True)) # 拼接新参数
                 optimizable_tensors[group["name"]] = group["params"][0]
 
@@ -477,7 +477,7 @@ class GaussianModel:
 
 
     def densification_postfix(self, new_xyz, new_features_dc, new_features_rest, new_opacities, new_scaling, new_rotation):
-        """添加或更新高斯模型的点，并重置一些状态。
+        """添加或更新高斯模型的点, 并重置一些状态。
 
         Args:
             new_xyz (tensor): 新的xyz坐标。
@@ -523,7 +523,7 @@ class GaussianModel:
             N (int, optional): 每个原始点创建的新点数。Defaults to 2.
 
         作用:
-        - 对于梯度大于阈值的点，按照N的数量创建新的高斯。
+        - 对于梯度大于阈值的点, 按照N的数量创建新的高斯。
         - 保持其他特征（颜色、不透明度等）不变。
         - 更新高斯模型以包含这些新点。
         """        
@@ -563,7 +563,7 @@ class GaussianModel:
             scene_extent (float): 场景的大小或范围。
 
         作用:
-        - 对于梯度大于阈值的点，创建它们的副本。
+        - 对于梯度大于阈值的点, 创建它们的副本。
         - 更新高斯模型以包含这些克隆的点。
         """
         # Extract points that satisfy the gradient condition
