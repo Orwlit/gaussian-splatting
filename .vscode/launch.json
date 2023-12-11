@@ -1,7 +1,4 @@
 {
-    // 使用 IntelliSense 了解相关属性。 
-    // 悬停以查看现有属性的描述。
-    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
@@ -27,32 +24,34 @@
             "stopOnEntry": false,
             "cwd": "${workspaceFolder}",
             "env": {
-                "DISPLAY": "localhost:10.0",
+                // "DISPLAY": "localhost:10.0",
                 // "QT_DEBUG_PLUGINS": "1",
             },
             "envFile": "${workspaceFolder}/.env",
             "args": [
                 "--source_path", 
-                "data/db/playroom",
+                // "data/db/playroom",
+                "~/Dataset/NeRF/db/playroom",
             ]
         },
         {
             "name": "convert.py debug",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/train.py",
+            "program": "${workspaceFolder}/convert.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "stopOnEntry": false,
             "cwd": "${workspaceFolder}",
             "env": {
-                "DISPLAY": "localhost:10.0",
+                // "DISPLAY": "localhost:10.0",
                 // "QT_DEBUG_PLUGINS": "1",
             },
             "envFile": "${workspaceFolder}/.env",
             "args": [
                 "--source_path", 
-                "data/db/playroom",
+                // "data/db/playroom",
+                "~/Dataset/NeRF/db/playroom",
             ]
         }
     ]

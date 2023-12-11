@@ -2,5 +2,5 @@
     "cmake.configureOnOpen": false
 } // {
 //   "files.autoSave": "afterDelay",
-//   "files.autoSaveDelay": 1000  // 自动保存的延迟时间（毫秒）
+//   "files.autoSaveDelay": 1000  // 自动保存的延迟时间 (毫秒) 
 // }

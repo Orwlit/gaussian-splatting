@@ -35,7 +35,16 @@ class CameraInfo(NamedTuple):
     width: int
     height: int
 
+
 class SceneInfo(NamedTuple):
+    """所有读取的信息被封装在 SceneInfo 结构中，其中包括:
+        1. 点云数据 (point_cloud) 
+            1. 
+            2. 
+        2. 训练和测试用的相机数据 (train_cameras 和 test_cameras) 
+            1. 
+            2. 
+    """
     point_cloud: BasicPointCloud
     train_cameras: list
     test_cameras: list
@@ -43,6 +52,16 @@ class SceneInfo(NamedTuple):
     ply_path: str
 
 def getNerfppNorm(cam_info):
+    """
+    计算从相机中心到场景的标准化转换。
+
+    Args:
+        cam_info (list of CameraInfo): 包含相机信息的列表。
+
+    Returns:
+        dict: 包含平移和半径信息的字典，用于场景的标准化。
+    """
+    
     def get_center_and_diag(cam_centers):
         cam_centers = np.hstack(cam_centers)
         avg_cam_center = np.mean(cam_centers, axis=1, keepdims=True)
@@ -66,6 +85,18 @@ def getNerfppNorm(cam_info):
     return {"translate": translate, "radius": radius}
 
 def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
+    """
+    从 COLMAP 输出中读取相机的外参和内参。
+
+    Args:
+        cam_extrinsics (dict): 包含相机外参的字典。
+        cam_intrinsics (dict): 包含相机内参的字典。
+        images_folder (str): 存储图像文件的文件夹路径。
+
+    Returns:
+        list: 包含 CameraInfo 对象的列表。
+    """
+
     cam_infos = []
     for idx, key in enumerate(cam_extrinsics):
         sys.stdout.write('\r')
@@ -105,6 +136,16 @@ def readColmapCameras(cam_extrinsics, cam_intrinsics, images_folder):
     return cam_infos
 
 def fetchPly(path):
+    """
+    从指定路径读取 PLY 文件，并转换为 BasicPointCloud 对象。
+
+    Args:
+        path (str): PLY 文件的路径。
+
+    Returns:
+        BasicPointCloud: 包含点云的位置、颜色和法线信息的对象。
+    """
+
     plydata = PlyData.read(path)
     vertices = plydata['vertex']
     positions = np.vstack([vertices['x'], vertices['y'], vertices['z']]).T
@@ -113,6 +154,17 @@ def fetchPly(path):
     return BasicPointCloud(points=positions, colors=colors, normals=normals)
 
 def storePly(path, xyz, rgb):
+    """
+    将 XYZ 坐标和 RGB 颜色信息存储为 PLY 文件。
+
+    Args:
+        path (str): 要存储 PLY 文件的路径。
+        xyz (np.array): XYZ 坐标数组。
+        rgb (np.array): RGB 颜色数组。
+
+    Returns:
+        None
+    """
     # Define the dtype for the structured array
     dtype = [('x', 'f4'), ('y', 'f4'), ('z', 'f4'),
             ('nx', 'f4'), ('ny', 'f4'), ('nz', 'f4'),
@@ -130,6 +182,18 @@ def storePly(path, xyz, rgb):
     ply_data.write(path)
 
 def readColmapSceneInfo(path, images, eval, llffhold=8):
+    """
+    读取和处理 COLMAP 生成的场景数据。
+
+    Args:
+        path (str): 包含 COLMAP 数据的目录路径。
+        images (str): 使用的图像目录（如果与 COLMAP 不同）。
+        eval (bool): 是否为评估模式。
+        llffhold (int, optional): 用于 LLFF 数据集的保留帧数。默认为 8。
+
+    Returns:
+        SceneInfo: 包含场景信息的对象。
+    """
     try:
         cameras_extrinsic_file = os.path.join(path, "sparse/0", "images.bin")
         cameras_intrinsic_file = os.path.join(path, "sparse/0", "cameras.bin")
@@ -160,7 +224,8 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
     if not os.path.exists(ply_path):
         print("Converting point3d.bin to .ply, will happen only the first time you open the scene.")
         try:
-            xyz, rgb, _ = read_points3D_binary(bin_path)
+            
+            xyz, rgb, _ = read_points3D_binary(bin_path) # 3D点信息：xyz, RGB
         except:
             xyz, rgb, _ = read_points3D_text(txt_path)
         storePly(ply_path, xyz, rgb)
@@ -177,6 +242,18 @@ def readColmapSceneInfo(path, images, eval, llffhold=8):
     return scene_info
 
 def readCamerasFromTransforms(path, transformsfile, white_background, extension=".png"):
+    """
+    从 JSON 格式的变换文件中读取相机参数。
+
+    Args:
+        path (str): 包含变换文件的路径。
+        transformsfile (str): 变换文件的名称。
+        white_background (bool): 是否使用白色背景。
+        extension (str, optional): 图像文件的扩展名。默认为 ".png"。
+
+    Returns:
+        list: 包含 CameraInfo 对象的列表。
+    """
     cam_infos = []
 
     with open(os.path.join(path, transformsfile)) as json_file:
@@ -219,6 +296,18 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
     return cam_infos
 
 def readNerfSyntheticInfo(path, white_background, eval, extension=".png"):
+    """
+    读取合成（非 COLMAP 生成）的 3D 数据集。
+
+    Args:
+        path (str): 数据集的路径。
+        white_background (bool): 是否使用白色背景。
+        eval (bool): 是否为评估模式。
+        extension (str, optional): 图像文件的扩展名。默认为 ".png"。
+
+    Returns:
+        SceneInfo: 包含场景信息的对象。
+    """
     print("Reading Training Transforms")
     train_cam_infos = readCamerasFromTransforms(path, "transforms_train.json", white_background, extension)
     print("Reading Test Transforms")

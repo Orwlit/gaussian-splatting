@@ -9,18 +9,31 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
+#! 此文件是colmap相关的工具文件
+
 import numpy as np
 import collections
 import struct
 
+#! 数据结构梳理
+
+# 存储相机模型的信息，包括模型的 ID、名称和参数数量。
 CameraModel = collections.namedtuple(
     "CameraModel", ["model_id", "model_name", "num_params"])
+
+# 存储单个相机的详细信息，包括 ID、模型、图像的宽度和高度，以及相机参数。
 Camera = collections.namedtuple(
     "Camera", ["id", "model", "width", "height", "params"])
+
+# 存储图像的基本信息，包括 ID、旋转向量、平移向量、相机 ID、名称、2D 点的坐标和关联的 3D 点 ID。
 BaseImage = collections.namedtuple(
     "Image", ["id", "qvec", "tvec", "camera_id", "name", "xys", "point3D_ids"])
+
+# 存储 3D 点的信息，包括 ID、坐标、颜色、误差、图像 ID 和 2D 点索引。
 Point3D = collections.namedtuple(
     "Point3D", ["id", "xyz", "rgb", "error", "image_ids", "point2D_idxs"])
+
+# CameraModel的拓展，定义了不同类型的相机模型及其属性。
 CAMERA_MODELS = {
     CameraModel(model_id=0, model_name="SIMPLE_PINHOLE", num_params=3),
     CameraModel(model_id=1, model_name="PINHOLE", num_params=4),
@@ -41,6 +54,14 @@ CAMERA_MODEL_NAMES = dict([(camera_model.model_name, camera_model)
 
 
 def qvec2rotmat(qvec):
+    """工具函数，将四元数转换为旋转矩阵。
+
+    Args:
+        qvec (_type_): 四元数
+
+    Returns:
+        _type_: 旋转矩阵
+    """
     return np.array([
         [1 - 2 * qvec[2]**2 - 2 * qvec[3]**2,
          2 * qvec[1] * qvec[2] - 2 * qvec[0] * qvec[3],
@@ -53,6 +74,14 @@ def qvec2rotmat(qvec):
          1 - 2 * qvec[1]**2 - 2 * qvec[2]**2]])
 
 def rotmat2qvec(R):
+    """工具函数，将旋转矩阵转换为四元数。
+
+    Args:
+        R (_type_): 旋转矩阵
+
+    Returns:
+        _type_: 四元数
+    """
     Rxx, Ryx, Rzx, Rxy, Ryy, Rzy, Rxz, Ryz, Rzz = R.flat
     K = np.array([
         [Rxx - Ryy - Rzz, 0, 0, 0],
@@ -67,10 +96,15 @@ def rotmat2qvec(R):
 
 class Image(BaseImage):
     def qvec2rotmat(self):
+        """工具函数，基于 BaseImage 的类，提供了额外的方法 qvec2rotmat，用于将四元数转换为旋转矩阵。
+
+        Returns:
+            _type_: _description_
+        """
         return qvec2rotmat(self.qvec)
 
 def read_next_bytes(fid, num_bytes, format_char_sequence, endian_character="<"):
-    """Read and unpack the next bytes from a binary file.
+    """Read and unpack the next bytes from a binary file. 工具函数，从二进制文件读取各种信息，从二进制文件中读取并解析指定数量的字节。
     :param fid:
     :param num_bytes: Sum of combination of {2, 4, 8}, e.g. 2, 6, 16, 30, etc.
     :param format_char_sequence: List of {c, e, f, d, h, H, i, I, l, L, q, Q}.
@@ -81,7 +115,7 @@ def read_next_bytes(fid, num_bytes, format_char_sequence, endian_character="<"):
     return struct.unpack(endian_character + format_char_sequence, data)
 
 def read_points3D_text(path):
-    """
+    """读取 3D 点的数据：.txt
     see: src/base/reconstruction.cc
         void Reconstruction::ReadPoints3DText(const std::string& path)
         void Reconstruction::WritePoints3DText(const std::string& path)
@@ -122,39 +156,58 @@ def read_points3D_text(path):
 
     return xyzs, rgbs, errors
 
+
 def read_points3D_binary(path_to_model_file):
     """
     see: src/base/reconstruction.cc
         void Reconstruction::ReadPoints3DBinary(const std::string& path)
         void Reconstruction::WritePoints3DBinary(const std::string& path)
+    
+    功能：
+    1. 将point3d.bin转换成point3d.ply
+    2. 提取xyz, RGB, error(重投影误差或重建误差?)
     """
-
-
+    
+    # 打开二进制文件进行读取
     with open(path_to_model_file, "rb") as fid:
+        # 读取点的数量
         num_points = read_next_bytes(fid, 8, "Q")[0]
 
+        # 初始化存储 XYZ 坐标、RGB 值和误差的数组
         xyzs = np.empty((num_points, 3))
         rgbs = np.empty((num_points, 3))
         errors = np.empty((num_points, 1))
 
+        # 遍历每个点
         for p_id in range(num_points):
+            # 读取单个点的属性：点 ID，XYZ 坐标，RGB 颜色，误差
             binary_point_line_properties = read_next_bytes(
                 fid, num_bytes=43, format_char_sequence="QdddBBBd")
-            xyz = np.array(binary_point_line_properties[1:4])
-            rgb = np.array(binary_point_line_properties[4:7])
-            error = np.array(binary_point_line_properties[7])
+
+            # 点云信息提取
+            xyz = np.array(binary_point_line_properties[1:4]) # 提取: XYZ 坐标
+            rgb = np.array(binary_point_line_properties[4:7]) # 提取: RGB 颜色
+            error = np.array(binary_point_line_properties[7]) # 提取: 重建误差
+            
+            # 读取该点的追踪长度 (与其相关联的 2D 图像点的数量) 
             track_length = read_next_bytes(
                 fid, num_bytes=8, format_char_sequence="Q")[0]
+            # 读取追踪元素，但在此函数中未使用
             track_elems = read_next_bytes(
                 fid, num_bytes=8*track_length,
                 format_char_sequence="ii"*track_length)
-            xyzs[p_id] = xyz
-            rgbs[p_id] = rgb
-            errors[p_id] = error
+            
+            # 将提取的数据存储到对应的数组中
+            xyzs[p_id] = xyz        # XYZ 坐标
+            rgbs[p_id] = rgb        # RGB 颜色
+            errors[p_id] = error    # 重建误差
+
+    # 返回 XYZ 坐标、RGB 颜色和误差
     return xyzs, rgbs, errors
 
+
 def read_intrinsics_text(path):
-    """
+    """从文本文件中读取相机内参信息：.txt
     Taken from https://github.com/colmap/colmap/blob/dev/scripts/python/read_write_model.py
     """
     cameras = {}
@@ -178,7 +231,7 @@ def read_intrinsics_text(path):
     return cameras
 
 def read_extrinsics_binary(path_to_model_file):
-    """
+    """读取相机外参信息：.bin
     see: src/base/reconstruction.cc
         void Reconstruction::ReadImagesBinary(const std::string& path)
         void Reconstruction::WriteImagesBinary(const std::string& path)
@@ -213,7 +266,7 @@ def read_extrinsics_binary(path_to_model_file):
 
 
 def read_intrinsics_binary(path_to_model_file):
-    """
+    """读取相机内参信息：.bin
     see: src/base/reconstruction.cc
         void Reconstruction::WriteCamerasBinary(const std::string& path)
         void Reconstruction::ReadCamerasBinary(const std::string& path)
@@ -242,7 +295,7 @@ def read_intrinsics_binary(path_to_model_file):
 
 
 def read_extrinsics_text(path):
-    """
+    """读取相机外参信息：.txt
     Taken from https://github.com/colmap/colmap/blob/dev/scripts/python/read_write_model.py
     """
     images = {}
@@ -271,7 +324,7 @@ def read_extrinsics_text(path):
 
 
 def read_colmap_bin_array(path):
-    """
+    """从 COLMAP 生成的二进制文件中读取浮点数数组。
     Taken from https://github.com/colmap/colmap/blob/dev/scripts/python/read_dense.py
 
     :param path: path to the colmap binary file.

@@ -373,7 +373,7 @@ class GaussianModel:
 
 
     def _prune_optimizer(self, mask):
-        """修剪（prune）优化器中的参数, 即根据给定的掩码（mask）保留或删除参数的某些部分。
+        """修剪 (prune) 优化器中的参数, 即根据给定的掩码 (mask) 保留或删除参数的某些部分。
 
         Args:
             mask (_type_): _description_
@@ -387,7 +387,7 @@ class GaussianModel:
 
         # 遍历优化器中的每个参数组
         for group in self.optimizer.param_groups:
-            # 获取当前参数的优化器状态（如果存在）
+            # 获取当前参数的优化器状态 (如果存在) 
             stored_state = self.optimizer.state.get(group['params'][0], None)
 
             if stored_state is not None:
@@ -430,7 +430,7 @@ class GaussianModel:
         self.max_radii2D = self.max_radii2D[valid_points_mask]
 
     def cat_tensors_to_optimizer(self, tensors_dict):
-        """将新的张量（tensor）添加到优化器的参数组中。
+        """将新的张量 (tensor) 添加到优化器的参数组中。
 
         Args:
             tensors_dict (_type_): _description_
@@ -448,7 +448,7 @@ class GaussianModel:
             assert len(group["params"]) == 1
             # 获取当前参数组名对应的扩展张量
             extension_tensor = tensors_dict[group["name"]]
-            # 获取当前参数的优化器状态（如果存在）
+            # 获取当前参数的优化器状态 (如果存在) 
             stored_state = self.optimizer.state.get(group['params'][0], None)
             
             # 如果状态存在, 更新状态的动量项和平方梯度项
@@ -524,7 +524,7 @@ class GaussianModel:
 
         作用:
         - 对于梯度大于阈值的点, 按照N的数量创建新的高斯。
-        - 保持其他特征（颜色、不透明度等）不变。
+        - 保持其他特征 (颜色、不透明度等) 不变。
         - 更新高斯模型以包含这些新点。
         """        
 
