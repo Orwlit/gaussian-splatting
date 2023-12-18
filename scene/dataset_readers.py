@@ -297,7 +297,7 @@ def readCamerasFromTransforms(path, transformsfile, white_background, extension=
 
 def readNerfSyntheticInfo(path, white_background, eval, extension=".png"):
     """
-    读取合成（非 COLMAP 生成）的 3D 数据集。
+    读取 Blender 方式的数据集。
 
     Args:
         path (str): 数据集的路径。

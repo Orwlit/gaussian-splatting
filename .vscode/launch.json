@@ -52,7 +52,19 @@
                 "--source_path", 
                 // "data/db/playroom",
                 "~/Dataset/NeRF/db/playroom",
+                // "~/Dataset/NeRF/rgbd_dataset_freiburg1_xyz/no_motion_blur",
             ]
+        },
+        {
+            "name": "convert_msg_to_colmap",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/test/convert_msg_to_colmap.py",
+            "console": "integratedTerminal",
+            "args": [],
+            "env": {},
+            "cwd": "${workspaceFolder}",
+            "stopOnEntry": false,
         }
     ]
 }
